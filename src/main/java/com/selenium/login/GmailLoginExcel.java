@@ -12,80 +12,100 @@ import java.time.Duration;
 
 public class GmailLoginExcel {
 
-	    public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 
-	        String filePath = "src/test/resources/testdata.xlsx";
-	        FileInputStream fis = new FileInputStream(filePath);
-	        Workbook workbook = WorkbookFactory.create(fis);
-	        Sheet sheet = workbook.getSheet("LoginData");
+		// Proper dynamic file path
+		String filePath = System.getProperty("user.dir") + "/src/test/resources/testdata.xlsx";
 
-	        int rowCount = sheet.getPhysicalNumberOfRows();
+		FileInputStream fis = new FileInputStream(filePath);
+		Workbook workbook = WorkbookFactory.create(fis);
+		Sheet sheet = workbook.getSheet("LoginData");
 
-	        for (int i = 1; i < rowCount; i++) {
+		int rowCount = sheet.getPhysicalNumberOfRows();
 
-	            Row row = sheet.getRow(i);
+		for (int i = 1; i < rowCount; i++) {
 
-	            String email = row.getCell(0) == null ? "" : row.getCell(0).toString();
-	            String password = row.getCell(1) == null ? "" : row.getCell(1).toString();
+			Row row = sheet.getRow(i);
 
-	            WebDriver driver = new ChromeDriver();
-	            driver.manage().window().maximize();
-	            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+			String email = row.getCell(0) == null ? "" : row.getCell(0).toString();
+			String password = row.getCell(1) == null ? "" : row.getCell(1).toString();
 
-	            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+			WebDriver driver = new ChromeDriver();
+			driver.manage().window().maximize();
+			driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
-	            driver.get("https://accounts.google.com/");
+			WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-	            try {
+			driver.get("https://accounts.google.com/");
 
-	                // TC_01 – Verify page load
-	                if (driver.getTitle().contains("Google")) {
-	                    System.out.println("TC_01 Passed - Page Loaded");
-	                }
+			try {
 
-	                // Enter Email
-	                WebElement emailField = wait.until(
-	                        ExpectedConditions.visibilityOfElementLocated(By.id("identifierId")));
-	                emailField.sendKeys(email);
+				// TC_01 – Verify page load
+				if (driver.getTitle().contains("Google")) {
+					System.out.println("TC_01 Passed - Page Loaded");
+				}
 
-	                driver.findElement(By.id("identifierNext")).click();
+				// Enter Email
+				WebElement emailField = wait
+						.until(ExpectedConditions.visibilityOfElementLocated(By.id("identifierId")));
+				emailField.clear();
+				emailField.sendKeys(email);
 
-	                // Handle Blank Email
-	                if (email.isEmpty()) {
-	                    wait.until(ExpectedConditions.visibilityOfElementLocated(
-	                            By.xpath("//div[@class='o6cuMc']")));
-	                    System.out.println("TC_05 Executed - Blank Email");
-	                }
+				driver.findElement(By.id("identifierNext")).click();
 
-	                // If email entered, wait for password field
-	                if (!email.isEmpty()) {
+				// TC_05 – Blank Email
+				if (email.isEmpty()) {
 
-	                    WebElement passwordField = wait.until(
-	                            ExpectedConditions.visibilityOfElementLocated(By.name("password")));
+					wait.until(
+							ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(),'Enter')]")));
 
-	                    passwordField.sendKeys(password);
+					System.out.println("TC_05 Executed - Blank Email");
+				}
 
-	                    driver.findElement(By.id("passwordNext")).click();
+				// If email is not blank, check valid or invalid
+				else {
 
-	                    if (password.isEmpty()) {
-	                        wait.until(ExpectedConditions.visibilityOfElementLocated(
-	                                By.xpath("//div[@class='o6cuMc']")));
-	                        System.out.println("TC_06 Executed - Blank Password");
-	                    } else {
-	                        System.out.println("TC_04 Executed - Invalid Password");
-	                    }
-	                }
+					try {
+						// Wait for password field (means email is valid)
+						WebElement passwordField = wait
+								.until(ExpectedConditions.visibilityOfElementLocated(By.name("Passwd")));
 
-	            } catch (Exception e) {
-	                System.out.println("Test execution error for: " + email);
-	            }
+						passwordField.sendKeys(password);
+						driver.findElement(By.id("passwordNext")).click();
 
-	            driver.quit();
-	            System.out.println("----------------------------------");
-	        }
+						// TC_06 – Blank Password
+						if (password.isEmpty()) {
 
-	        workbook.close();
-	        fis.close();
-	    }
+							wait.until(ExpectedConditions
+									.visibilityOfElementLocated(By.xpath("//*[contains(text(),'Enter')]")));
+
+							System.out.println("TC_06 Executed - Blank Password");
+						}
+
+						// TC_04 – Invalid Password
+						else {
+							System.out.println("TC_04 Executed - Invalid Password");
+						}
+
+					} catch (Exception e) {
+
+						// TC_03 – Invalid Email
+						wait.until(ExpectedConditions
+								.visibilityOfElementLocated(By.xpath("//*[contains(text(),'Enter')]")));
+
+						System.out.println("TC_03 Executed - Invalid Email");
+					}
+				}
+
+			} catch (Exception e) {
+				System.out.println("Test execution error for: " + email);
+			}
+
+			driver.quit();
+			System.out.println("----------------------------------");
+		}
+
+		workbook.close();
+		fis.close();
+	}
 }
-
